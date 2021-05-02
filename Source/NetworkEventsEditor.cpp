@@ -50,6 +50,8 @@ NetworkEventsEditor::NetworkEventsEditor(GenericProcessor* parentNode, bool useD
     labelPort->setEditable(true);
     labelPort->addListener(this);
     addAndMakeVisible(labelPort);
+
+    enable();
 }
 
 
