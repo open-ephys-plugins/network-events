@@ -29,7 +29,7 @@
 const int MAX_MESSAGE_LENGTH = 64000;
 
 
-#ifdef WIN32
+#ifdef _WIN32
     #include <windows.h>
 #else
     #include <unistd.h>
@@ -139,15 +139,6 @@ AudioProcessorEditor* NetworkEvents::createEditor ()
 void NetworkEvents::handleAsyncUpdate()
 {
     makeNewSocket = true;
-}
-
-
-void NetworkEvents::postTimestamppedStringToMidiBuffer (const StringTS& s, juce::int64 timestamp)
-{
-	MetadataValueArray md;
-	md.add(new MetadataValue(MetadataDescriptor::INT64, 1, &s.timestamp));
-	TextEventPtr event = TextEvent::createTextEvent(messageChannel, timestamp, s.str, md);
-	addEvent(event, 0);
 }
 
 
@@ -323,8 +314,8 @@ void NetworkEvents::process (AudioSampleBuffer& buffer)
                 ScopedLock lock(queueLock);
                 while (!networkMessagesQueue.empty())
                 {
-                    const StringTS& msg = networkMessagesQueue.front();
-                    postTimestamppedStringToMidiBuffer(msg, timestamp);
+                    const String& msg = networkMessagesQueue.front();
+                    broadcastMessage(msg);
                     networkMessagesQueue.pop();
                 }
             }
@@ -404,8 +395,6 @@ void NetworkEvents::run()
 
         int result = responder->receive(buffer);  // times out after RECV_TIMEOUT_MS ms
 
-        juce::int64 timestamp_software = Time::getHighResolutionTicks();
-
         if (result == -1)
         {
             jassert(responder->getErr() == EAGAIN); // if not, figure out why!
@@ -416,7 +405,7 @@ void NetworkEvents::run()
         String msg = String::fromUTF8(buffer, result);
         {
             ScopedLock lock(queueLock);
-            networkMessagesQueue.push({ msg, timestamp_software });
+            networkMessagesQueue.push({ msg });
         }
 
         CoreServices::sendStatusMessage("Network event received: " + msg);

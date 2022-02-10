@@ -26,13 +26,7 @@
 //#define ZEROMQ
 
 #ifdef ZEROMQ
-    #ifdef _WIN32
-        //#pragma comment( lib, "../../Resources/windows-libs/ZeroMQ/lib_x64/libzmq-v120-mt-4_0_4.lib" )
-        #include <zmq.h>
-        #include <zmq_utils.h>
-    #else
-        #include <zmq.h>
-    #endif
+    #include <zmq.h>
 #endif
 
 #include <ProcessorHeaders.h>
@@ -78,12 +72,6 @@ public:
     void restartConnection();
 
 private:
-    struct StringTS
-    {
-        String str;
-        int64 timestamp;
-    };
-
     struct StringTTL
     {
         bool onOff;
@@ -143,8 +131,6 @@ private:
     };
 
     void handleAsyncUpdate() override; // to change port asynchronously
-
-    void postTimestamppedStringToMidiBuffer(const StringTS& s, juce::int64 timestamp);
     
     String handleSpecialMessages(const String& s);
 
@@ -164,7 +150,7 @@ private:
     std::atomic<uint16> requestedPort; // never set by the thread; 0 means any free port
     std::atomic<uint16> boundPort;     // only set by the thread; 0 means no connection
 
-    std::queue<StringTS> networkMessagesQueue;
+    std::queue<String> networkMessagesQueue;
     CriticalSection queueLock;
 
     std::queue<StringTTL> TTLQueue;
