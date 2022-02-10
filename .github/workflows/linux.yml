@@ -17,17 +17,12 @@ jobs:
     - name: setup
       run: |
         sudo apt update
-        sudo apt install gcc-8 g++-8
-        export CC=gcc-8
-        export CXX=g++-8
         cd ../..
-        git clone https://github.com/open-ephys/plugin-GUI.git --branch master
+        git clone https://github.com/open-ephys/plugin-GUI.git --branch development-juce6
         sudo ./plugin-GUI/Resources/Scripts/install_linux_dependencies.sh
         cd plugin-GUI/Build && cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
     - name: build
       run: |
-        export CC=gcc-8
-        export CXX=g++-8
         cd Build
         cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
         make
