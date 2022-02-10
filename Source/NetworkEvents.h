@@ -23,17 +23,17 @@
 
 #ifndef __NETWORKEVENT_H_91811541__
 #define __NETWORKEVENT_H_91811541__
-//#define ZEROMQ
-
-#ifdef ZEROMQ
-    #include <zmq.h>
-#endif
 
 #include <ProcessorHeaders.h>
 
 #include <list>
 #include <queue>
 #include <atomic>
+
+//#define ZEROMQ
+#ifdef ZEROMQ
+    #include <zmq.h>
+#endif
 
 /**
  Sends incoming TCP/IP messages from 0MQ to the events buffer
