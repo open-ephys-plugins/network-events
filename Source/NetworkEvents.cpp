@@ -41,7 +41,7 @@ NetworkEvents::NetworkEvents()
     , makeNewSocket     (false)
     , boundPort         (0)
 {
-    setProcessorType (PROCESSOR_TYPE_SOURCE);
+    setProcessorType (Plugin::Processor::FILTER);
 
     // async so that any lingering instances will be destroyed first
     setNewListeningPort(5556, false);
@@ -90,32 +90,49 @@ void NetworkEvents::restartConnection()
 }
 
 
-void NetworkEvents::createEventChannels()
+void NetworkEvents::updateSettings()
 {
-    float sampleRate = CoreServices::getGlobalSampleRate();
-    EventChannel* chan = new EventChannel(EventChannel::TEXT, 1, MAX_MESSAGE_LENGTH, sampleRate, this);
-	chan->setName("Network messages");
-	chan->setDescription("Messages received through the network events module");
-	chan->setIdentifier("external.network.rawData");
-	chan->addEventMetaData(new MetaDataDescriptor(MetaDataDescriptor::INT64, 1, "Software timestamp",
-		"OS high resolution timer count when the event was received", "timestamp.software"));
-	eventChannelArray.add(chan);
-	messageChannel = chan;
+    for (auto stream : getDataStreams())
+	{
+        // TEXT Channel
+        EventChannel* chan;
+        EventChannel::Settings messageChannelSettings{
+            EventChannel::Type::TEXT,
+            "Network messages",
+            "Messages received through the network events module",
+            "external.network.rawData",
+            getDataStream(stream->getStreamId())
+        };
 
-    EventChannel* TTLchan = new EventChannel(EventChannel::TTL, 8, 1, sampleRate, this);
-    TTLchan->setName("Network Events output");
-    TTLchan->setDescription("Triggers whenever \"TTL\" is received on the port.");
-    TTLchan->setIdentifier("external.network.ttl");
-    eventChannelArray.add(TTLchan);
-    TTLChannel = TTLchan;
+        chan = new EventChannel(messageChannelSettings);
+        chan->addProcessor(processorInfo.get());
+        eventChannels.add(chan);
+        messageChannel = chan;
+
+        // TTL Channel
+        EventChannel* ttlChan;
+         EventChannel::Settings ttlChannelSettings{
+            EventChannel::Type::TTL,
+            "Network Events output",
+            "Triggers whenever \"TTL\" is received on the port.",
+            "external.network.ttl",
+            getDataStream(stream->getStreamId())
+        };
+
+        ttlChan = new EventChannel(ttlChannelSettings);
+        ttlChan->addProcessor(processorInfo.get());
+        eventChannels.add(ttlChan);
+        TTLChannel = ttlChan;
+    
+    }
 }
 
 
 AudioProcessorEditor* NetworkEvents::createEditor ()
 {
-    editor = new NetworkEventsEditor (this, true);
+    editor = std::make_unique<NetworkEventsEditor>(this);
 
-    return editor;
+    return editor.get();
 }
 
 
@@ -127,10 +144,10 @@ void NetworkEvents::handleAsyncUpdate()
 
 void NetworkEvents::postTimestamppedStringToMidiBuffer (const StringTS& s, juce::int64 timestamp)
 {
-	MetaDataValueArray md;
-	md.add(new MetaDataValue(MetaDataDescriptor::INT64, 1, &s.timestamp));
+	MetadataValueArray md;
+	md.add(new MetadataValue(MetadataDescriptor::INT64, 1, &s.timestamp));
 	TextEventPtr event = TextEvent::createTextEvent(messageChannel, timestamp, s.str, md);
-	addEvent(messageChannel, event, 0);
+	addEvent(event, 0);
 }
 
 
@@ -176,20 +193,20 @@ String NetworkEvents::handleSpecialMessages(const String& s)
                     {
                         if (value.compareIgnoreCase ("1") == 0)
                         {
-                            CoreServices::createNewRecordingDir();
+                            CoreServices::createNewRecordingDirectory();
                         }
                     }
                     else if (key.compareIgnoreCase ("RecDir") == 0)
                     {
-                        CoreServices::setRecordingDirectory (value);
+                        CoreServices::RecordNode::setRecordingDirectory (value, 0, true);
                     }
                     else if (key.compareIgnoreCase ("PrependText") == 0)
                     {
-                        CoreServices::setPrependTextToRecordingDir (value);
+                        CoreServices::setRecordingDirectoryPrependText (value);
                     }
                     else if (key.compareIgnoreCase ("AppendText") == 0)
                     {
-                        CoreServices::setAppendTextToRecordingDir (value);
+                        CoreServices::setRecordingDirectoryAppendText (value);
                     }
                 }
             }
@@ -219,20 +236,22 @@ String NetworkEvents::handleSpecialMessages(const String& s)
     }
     else if (cmd.compareIgnoreCase ("GetRecordingPath") == 0)
     {
-        File file = CoreServices::RecordNode::getRecordingPath();
+        File file = CoreServices::getRecordingParentDirectory();
         String msg (file.getFullPathName());
         return msg;
     }
     else if (cmd.compareIgnoreCase ("GetRecordingNumber") == 0)
     {
         String status;
-        status += (CoreServices::RecordNode::getRecordingNumber() + 1);
+        status += (CoreServices::RecordNode::getRecordingNumber(
+                        CoreServices::getAvailableRecordNodeIds().getFirst()) + 1);
         return status;
     }
     else if (cmd.compareIgnoreCase ("GetExperimentNumber") == 0)
     {
         String status;
-        status += CoreServices::RecordNode::getExperimentNumber();
+        status += CoreServices::RecordNode::getExperimentNumber(
+                        CoreServices::getAvailableRecordNodeIds().getFirst());
         return status;
     }
     else if (cmd.compareIgnoreCase ("TTL") == 0)
@@ -277,7 +296,7 @@ String NetworkEvents::handleSpecialMessages(const String& s)
         
         
         
-        return "TTLHandled: Channel=" + String(channel + 1) + " on=" + String(onOff);
+        return "TTLHandled: Channel=" + String(channel + 1) + " on=" + String(int(onOff));
     }
 
     return String ("NotHandled");
@@ -285,34 +304,40 @@ String NetworkEvents::handleSpecialMessages(const String& s)
 
 void NetworkEvents::triggerTTLEvent(StringTTL TTLmsg, juce::int64 timestamp)
 {
-    juce::uint8 ttlData = TTLmsg.onOff << TTLmsg.eventChannel;
-    TTLEventPtr event = TTLEvent::createTTLEvent(TTLChannel, timestamp, &ttlData, sizeof(juce::uint8), TTLmsg.eventChannel);
-    addEvent(TTLChannel, event, 0);
+    TTLEventPtr event = TTLEvent::createTTLEvent(TTLChannel, timestamp, TTLmsg.eventChannel, TTLmsg.onOff);
+    addEvent(event, 0);
 }
 
 
 void NetworkEvents::process (AudioSampleBuffer& buffer)
 {
-    juce::int64 timestamp = CoreServices::getGlobalTimestamp();
-    setTimestampAndSamples(timestamp,0);
+     for (auto stream : getDataStreams())
+    {
 
-    {
-        ScopedLock lock(queueLock);
-        while (!networkMessagesQueue.empty())
+        if ((*stream)["enable_stream"])
         {
-            const StringTS& msg = networkMessagesQueue.front();
-            postTimestamppedStringToMidiBuffer(msg, timestamp);
-            networkMessagesQueue.pop();
-        }
-    }
-        
-    {
-        ScopedLock TTLlock(TTLqueueLock);
-        while (!TTLQueue.empty())
-        {
-            const StringTTL& TTLmsg = TTLQueue.front();
-            triggerTTLEvent(TTLmsg, timestamp);
-            TTLQueue.pop();
+            juce::int64 timestamp = CoreServices::getGlobalTimestamp();
+            setTimestampAndSamples(timestamp, 0, stream->getStreamId());
+
+            {
+                ScopedLock lock(queueLock);
+                while (!networkMessagesQueue.empty())
+                {
+                    const StringTS& msg = networkMessagesQueue.front();
+                    postTimestamppedStringToMidiBuffer(msg, timestamp);
+                    networkMessagesQueue.pop();
+                }
+            }
+                
+            {
+                ScopedLock TTLlock(TTLqueueLock);
+                while (!TTLQueue.empty())
+                {
+                    const StringTTL& TTLmsg = TTLQueue.front();
+                    triggerTTLEvent(TTLmsg, timestamp);
+                    TTLQueue.pop();
+                }
+            }
         }
     }
 }
@@ -409,29 +434,6 @@ void NetworkEvents::run()
 }
 
 
-bool NetworkEvents::isReady()
-{
-    return true;
-}
-
-
-float NetworkEvents::getDefaultSampleRate() const
-{
-    return 30000.0f;
-}
-
-
-float NetworkEvents::getDefaultBitVolts() const
-{
-    return 0.05f;
-}
-
-void NetworkEvents::setEnabledState (bool newState)
-{
-    isEnabled = newState;
-}
-
-
 void NetworkEvents::saveCustomParametersToXml (XmlElement* parentElement)
 {
     XmlElement* mainNode = parentElement->createNewChildElement ("NETWORKEVENTS");
@@ -441,11 +443,11 @@ void NetworkEvents::saveCustomParametersToXml (XmlElement* parentElement)
 }
 
 
-void NetworkEvents::loadCustomParametersFromXml()
+void NetworkEvents::loadCustomParametersFromXml(XmlElement* parentElement)
 {
-    if (parametersAsXml != nullptr)
+    if (parentElement != nullptr)
     {
-        forEachXmlChildElement (*parametersAsXml, mainNode)
+        forEachXmlChildElement (*parentElement, mainNode)
         {
             if (mainNode->hasTagName ("NETWORKEVENTS"))
             {

@@ -26,8 +26,8 @@
 
 #include <stdio.h>
 
-NetworkEventsEditor::NetworkEventsEditor(GenericProcessor* parentNode, bool useDefaultParameterEditors=true)
-    : GenericEditor(parentNode, useDefaultParameterEditors)
+NetworkEventsEditor::NetworkEventsEditor(NetworkEvents* parentNode)
+    : GenericEditor(parentNode)
 
 {
 	desiredWidth = 180;
@@ -35,33 +35,30 @@ NetworkEventsEditor::NetworkEventsEditor(GenericProcessor* parentNode, bool useD
     urlLabel = new Label("Port", "Port:");
     urlLabel->setBounds(20,80,140,25);
     addAndMakeVisible(urlLabel);
-	NetworkEvents *p= (NetworkEvents *)getProcessor();
+	processor = parentNode;
 
-	restartConnection = new UtilityButton("Restart Connection",Font("Default", 15, Font::plain));
+	restartConnection = std::make_unique<UtilityButton>("Restart Connection", Font("Fira Code", "Regular", 15.0f));
     restartConnection->setBounds(20,45,150,18);
     restartConnection->addListener(this);
-    addAndMakeVisible(restartConnection);
+    addAndMakeVisible(restartConnection.get());
 
-	labelPort = new Label("Port", p->getCurrPortString());
+	labelPort = new Label("Port", processor->getCurrPortString());
     labelPort->setBounds(70,85,80,18);
-    labelPort->setFont(Font("Default", 15, Font::plain));
+    // labelPort->setFont(Font("Default", 15, Font::plain));
     labelPort->setColour(Label::textColourId, Colours::white);
     labelPort->setColour(Label::backgroundColourId, Colours::grey);
     labelPort->setEditable(true);
     labelPort->addListener(this);
     addAndMakeVisible(labelPort);
-
-    enable();
 }
 
 
 
-void NetworkEventsEditor::buttonEvent(Button* button)
+void NetworkEventsEditor::buttonClicked(Button* button)
 {
-	if (button == restartConnection)
+	if (button == restartConnection.get())
 	{
-		NetworkEvents *p= (NetworkEvents *)getProcessor();
-		p->restartConnection();
+		processor->restartConnection();
 	}
 }
 

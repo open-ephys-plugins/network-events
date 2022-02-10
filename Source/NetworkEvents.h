@@ -26,7 +26,7 @@
 //#define ZEROMQ
 
 #ifdef ZEROMQ
-    #ifdef WIN32
+    #ifdef _WIN32
         //#pragma comment( lib, "../../Resources/windows-libs/ZeroMQ/lib_x64/libzmq-v120-mt-4_0_4.lib" )
         #include <zmq.h>
         #include <zmq_utils.h>
@@ -60,17 +60,10 @@ public:
 
     void process (AudioSampleBuffer& buffer) override;
 
-    void createEventChannels() override;
-
-    void setEnabledState (bool newState) override;
+    void updateSettings() override;
 
     void saveCustomParametersToXml (XmlElement* parentElement) override;
-    void loadCustomParametersFromXml() override;
-
-    bool isReady() override;
-
-    float getDefaultSampleRate() const override;
-    float getDefaultBitVolts()   const override;
+    void loadCustomParametersFromXml(XmlElement* parentElement) override;
 
     // =========================================================================
 

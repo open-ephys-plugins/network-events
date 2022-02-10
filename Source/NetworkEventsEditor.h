@@ -38,24 +38,27 @@ class NetworkEvents;
 
 */
 
-class NetworkEventsEditor : public GenericEditor,public Label::Listener
+class NetworkEventsEditor : public GenericEditor, 
+                            public Button::Listener,
+                            public Label::Listener
 {
 public:
-    NetworkEventsEditor(GenericProcessor* parentNode, bool useDefaultParameterEditors);
+    NetworkEventsEditor(NetworkEvents* parentNode);
     virtual ~NetworkEventsEditor();
 
-    void buttonEvent(Button* button);
+    void buttonClicked(Button* button) override;
 	void labelTextChanged(juce::Label *);
 	void setLabelColor(juce::Colour color);
     void setPortText(const String& text);
 private:
+    NetworkEvents* processor;
 
     // interprets input string as a port number (1-65535); returns false if invalid
     // or out of range, else sets *port to parsed value. as a special case, if portString
     // is "*", sets *port to 0 and returns true.
     static bool portFromString(const String& portString, uint16* port);
 
-	ScopedPointer<UtilityButton> restartConnection;
+	std::unique_ptr<UtilityButton> restartConnection;
     ScopedPointer<Label> urlLabel;
 	ScopedPointer<Label> labelPort;
 
