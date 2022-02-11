@@ -147,6 +147,27 @@ String NetworkEvents::handleSpecialMessages(const String& s)
     /** Command is first substring */
     String cmd = s.initialSectionNotContaining(" ");
 
+    StringPairArray dict; // paramater key,value pairs
+    StringArray keys;
+    bool recNode = false;
+    int recId;
+
+    // check for extra parameters
+    if (s.contains ("="))
+    {
+        String params = s.substring (cmd.length()).trim();
+        dict = parseNetworkMessage (params);
+        dict.setIgnoresCase(true);
+        keys = dict.getAllKeys();
+
+        // check if record node ID is provided
+        if(keys.contains("RecordNode", true))
+        {
+            recNode = true;
+            recId = CoreServices::getAvailableRecordNodeIds()[dict["RecordNode"].getIntValue() - 1];
+        }
+    }
+
     const MessageManagerLock mmLock;
     if (cmd.compareIgnoreCase ("StartAcquisition") == 0)
     {
@@ -171,10 +192,6 @@ String NetworkEvents::handleSpecialMessages(const String& s)
             /** First set optional parameters (name/value pairs)*/
             if (s.contains ("="))
             {
-                String params = s.substring (cmd.length()).trim();
-                StringPairArray dict = parseNetworkMessage (params);
-
-                StringArray keys = dict.getAllKeys();
                 for (int i = 0; i < keys.size(); ++i)
                 {
                     String key   = keys[i];
@@ -184,12 +201,18 @@ String NetworkEvents::handleSpecialMessages(const String& s)
                     {
                         if (value.compareIgnoreCase ("1") == 0)
                         {
-                            CoreServices::createNewRecordingDirectory();
+                            if(recNode)
+                                CoreServices::RecordNode::createNewRecordingDirectory(recId);
+                            else
+                                CoreServices::createNewRecordingDirectory();
                         }
                     }
                     else if (key.compareIgnoreCase ("RecDir") == 0)
                     {
-                        CoreServices::RecordNode::setRecordingDirectory (value, 0, true);
+                        if(recNode)
+                            CoreServices::RecordNode::setRecordingDirectory(value, recId);
+                        else
+                            CoreServices::RecordNode::setRecordingDirectory (value, 0, true);
                     }
                     else if (key.compareIgnoreCase ("PrependText") == 0)
                     {
@@ -220,6 +243,11 @@ String NetworkEvents::handleSpecialMessages(const String& s)
         String status = CoreServices::getAcquisitionStatus() ? String ("1") : String ("0");
         return status;
     }
+    else if (cmd.compareIgnoreCase ("GetNodeID") == 0)
+    {
+        String status = String(CoreServices::getAvailableRecordNodeIds().getFirst());
+        return status;
+    }
     else if (cmd.compareIgnoreCase ("IsRecording") == 0)
     {
         String status = CoreServices::getRecordingStatus() ? String ("1") : String ("0");
@@ -227,22 +255,50 @@ String NetworkEvents::handleSpecialMessages(const String& s)
     }
     else if (cmd.compareIgnoreCase ("GetRecordingPath") == 0)
     {
-        File file = CoreServices::getRecordingParentDirectory();
-        String msg (file.getFullPathName());
+        File recordDir;
+
+        if(recNode)
+        {
+            recordDir = CoreServices::RecordNode::getRecordingDirectory(recId);
+        }
+        else
+        {
+            recordDir = CoreServices::getRecordingParentDirectory();
+        }
+
+        String msg (recordDir.getFullPathName());
         return msg;
     }
     else if (cmd.compareIgnoreCase ("GetRecordingNumber") == 0)
     {
         String status;
-        status += (CoreServices::RecordNode::getRecordingNumber(
-                        CoreServices::getAvailableRecordNodeIds().getFirst()) + 1);
+
+        if(recNode)
+        {
+            status += (CoreServices::RecordNode::getRecordingNumber(recId));
+        }
+        else
+        {
+            status += (CoreServices::RecordNode::getRecordingNumber(
+                            CoreServices::getAvailableRecordNodeIds().getFirst()) + 1);
+        }
+
         return status;
     }
     else if (cmd.compareIgnoreCase ("GetExperimentNumber") == 0)
     {
         String status;
-        status += CoreServices::RecordNode::getExperimentNumber(
-                        CoreServices::getAvailableRecordNodeIds().getFirst());
+
+        if(recNode)
+        {
+            status += (CoreServices::RecordNode::getExperimentNumber(recId));
+        }
+        else
+        {
+            status += (CoreServices::RecordNode::getExperimentNumber(
+                            CoreServices::getAvailableRecordNodeIds().getFirst()) + 1);
+        }
+
         return status;
     }
     else if (cmd.compareIgnoreCase ("TTL") == 0)
@@ -250,11 +306,7 @@ String NetworkEvents::handleSpecialMessages(const String& s)
         // Default to channel 0 and off (if no optional info sent)
         int channel = 0;
         bool onOff = 0;
-        /** Set optional parameters (name/value pairs)*/
-        String params = s.substring(cmd.length()).trim();
-        StringPairArray dict = parseNetworkMessage(params);
 
-        StringArray keys = dict.getAllKeys();
         for (int i = 0; i < keys.size(); ++i)
         {
             String key = keys[i];
