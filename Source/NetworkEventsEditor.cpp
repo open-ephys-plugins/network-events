@@ -31,25 +31,25 @@ NetworkEventsEditor::NetworkEventsEditor(NetworkEvents* parentNode)
 
 {
 	desiredWidth = 180;
-
-    urlLabel = new Label("Port", "Port:");
-    urlLabel->setBounds(20,80,140,25);
-    addAndMakeVisible(urlLabel);
-	processor = parentNode;
+    
+    processor = parentNode;
 
 	restartConnection = std::make_unique<UtilityButton>("Restart Connection", Font("Fira Code", "Regular", 15.0f));
-    restartConnection->setBounds(20,45,150,18);
+    restartConnection->setBounds(20,45,130,18);
     restartConnection->addListener(this);
     addAndMakeVisible(restartConnection.get());
+    
+    urlLabel = std::make_unique<Label>("Port", "Port:");
+    urlLabel->setBounds(20,85,140,25);
+    addAndMakeVisible(urlLabel.get());
 
-	labelPort = new Label("Port", processor->getCurrPortString());
+	labelPort = std::make_unique<Label>("Port", processor->getCurrPortString());
     labelPort->setBounds(70,85,80,18);
-    // labelPort->setFont(Font("Default", 15, Font::plain));
     labelPort->setColour(Label::textColourId, Colours::white);
     labelPort->setColour(Label::backgroundColourId, Colours::grey);
     labelPort->setEditable(true);
     labelPort->addListener(this);
-    addAndMakeVisible(labelPort);
+    addAndMakeVisible(labelPort.get());
 }
 
 
@@ -76,7 +76,7 @@ void NetworkEventsEditor::setPortText(const String& text)
 
 void NetworkEventsEditor::labelTextChanged(juce::Label *label)
 {
-    if (label == labelPort)
+    if (label == labelPort.get())
     {
         NetworkEvents *p = (NetworkEvents *)getProcessor();
         

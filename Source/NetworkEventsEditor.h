@@ -59,8 +59,8 @@ private:
     static bool portFromString(const String& portString, uint16* port);
 
 	std::unique_ptr<UtilityButton> restartConnection;
-    ScopedPointer<Label> urlLabel;
-	ScopedPointer<Label> labelPort;
+    std::unique_ptr<Label> urlLabel;
+	std::unique_ptr<Label> labelPort;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NetworkEventsEditor);
 
