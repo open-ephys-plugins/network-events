@@ -164,7 +164,10 @@ String NetworkEvents::handleSpecialMessages(const String& s)
         if(keys.contains("RecordNode", true))
         {
             recNode = true;
-            recId = CoreServices::getAvailableRecordNodeIds()[dict["RecordNode"].getIntValue() - 1];
+            recId = dict["RecordNode"].getIntValue();
+
+            if(recId < 99)
+                recNode = false;
         }
     }
 
