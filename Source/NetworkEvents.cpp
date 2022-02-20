@@ -92,22 +92,11 @@ void NetworkEvents::restartConnection()
 
 void NetworkEvents::updateSettings()
 {
+
+    ttlChannels.clear();
+
     for (auto stream : getDataStreams())
 	{
-        // TEXT Channel
-        EventChannel* chan;
-        EventChannel::Settings messageChannelSettings{
-            EventChannel::Type::TEXT,
-            "Network messages",
-            "Messages received through the network events module",
-            "external.network.rawData",
-            getDataStream(stream->getStreamId())
-        };
-
-        chan = new EventChannel(messageChannelSettings);
-        chan->addProcessor(processorInfo.get());
-        eventChannels.add(chan);
-        messageChannel = chan;
 
         // TTL Channel
         EventChannel* ttlChan;
@@ -122,7 +111,7 @@ void NetworkEvents::updateSettings()
         ttlChan = new EventChannel(ttlChannelSettings);
         ttlChan->addProcessor(processorInfo.get());
         eventChannels.add(ttlChan);
-        TTLChannel = ttlChan;
+        ttlChannels.add(ttlChan);
     
     }
 }
@@ -318,7 +307,7 @@ String NetworkEvents::handleSpecialMessages(const String& s)
             if (key.compareIgnoreCase("Channel") == 0)
             {
                 // Make sure in range
-                if (value <= 8 && value >= 1)
+                if (value <= 256 && value >= 1)
                 {
                     channel = value - 1;
                 }
@@ -350,12 +339,20 @@ String NetworkEvents::handleSpecialMessages(const String& s)
 
 void NetworkEvents::triggerTTLEvent(StringTTL TTLmsg, juce::int64 timestamp)
 {
-    TTLEventPtr event = TTLEvent::createTTLEvent(TTLChannel, timestamp, TTLmsg.eventChannel, TTLmsg.onOff);
-    addEvent(event, 0);
+    for (auto ttlChannel : ttlChannels)
+    {
+        TTLEventPtr event = 
+            TTLEvent::createTTLEvent(ttlChannel, 
+                                     timestamp, 
+                                     TTLmsg.eventChannel, 
+                                     TTLmsg.onOff);
+        addEvent(event, 0);
+    }
+    
 }
 
 
-void NetworkEvents::process (AudioSampleBuffer& buffer)
+void NetworkEvents::process (AudioBuffer<float>& buffer)
 {
      for (auto stream : getDataStreams())
     {

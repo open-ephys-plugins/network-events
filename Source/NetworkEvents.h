@@ -45,18 +45,27 @@ class NetworkEvents : public GenericProcessor
                     , private AsyncUpdater
 {
 public:
+
+    /** Constructor */
     NetworkEvents();
+
+    /** Destructor -- stops the network thread*/
     ~NetworkEvents();
 
     // GenericProcessor methods
     // =========================================================================
     AudioProcessorEditor* createEditor() override;
 
-    void process (AudioSampleBuffer& buffer) override;
+    /** Triggers TTLs on the appropriate channel*/
+    void process (AudioBuffer<float>& buffer) override;
 
+    /** Updates settings*/
     void updateSettings() override;
 
+    /** Saves parameters*/
     void saveCustomParametersToXml (XmlElement* parentElement) override;
+
+    /** Loads parameters */
     void loadCustomParametersFromXml(XmlElement* parentElement) override;
 
     // =========================================================================
@@ -156,8 +165,7 @@ private:
     std::queue<StringTTL> TTLQueue;
     CriticalSection TTLqueueLock;
     
-	const EventChannel* messageChannel{ nullptr };
-    const EventChannel* TTLChannel{ nullptr };
+    Array<const EventChannel*> ttlChannels;
 
     void triggerTTLEvent(StringTTL TTLmsg, juce::int64 timestamp);
 
