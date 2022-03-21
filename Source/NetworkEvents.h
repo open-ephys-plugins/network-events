@@ -165,7 +165,7 @@ private:
     std::queue<StringTTL> TTLQueue;
     CriticalSection TTLqueueLock;
     
-    Array<const EventChannel*> ttlChannels;
+    Array<EventChannel*> ttlChannels;
 
     void triggerTTLEvent(StringTTL TTLmsg, juce::int64 timestamp);
 

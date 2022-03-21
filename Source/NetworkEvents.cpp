@@ -359,7 +359,7 @@ void NetworkEvents::process (AudioBuffer<float>& buffer)
 
         if ((*stream)["enable_stream"])
         {
-            juce::int64 timestamp = CoreServices::getGlobalTimestamp();
+            juce::int64 timestamp = getSourceTimestamp(stream->getStreamId());
 
             {
                 ScopedLock lock(queueLock);
