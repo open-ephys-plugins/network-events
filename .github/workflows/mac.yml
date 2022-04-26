@@ -31,8 +31,7 @@ jobs:
       env:
         artifactoryApiKey: ${{ secrets.artifactoryApiKey }}
         build_dir: "Build/Release"
-        repo: ${{ github.event.repository.name }}
-        package: ${{ github.event.repository.name }}-mac
+        package: NetworkEvents-mac
       run: |
         plugin_api=$(grep -rnw ../../plugin-GUI/Source -e '#define PLUGIN_API_VER' | grep -Eo "[0-9]" | tail -1)
         tag=$(git describe --tags $(git rev-list --tags --max-count=1))
