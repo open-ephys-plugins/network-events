@@ -24,7 +24,7 @@ jobs:
         cd Build
         cmake -G "Xcode" ..
         xcodebuild -configuration Release
-        install_name_tool -change /usr/local/lib/libzmq.5.dylib @rpath/libzmq.5.dylib Release/NetworkEvents.bundle/Contents/MacOS/NetworkEvents
+        install_name_tool -change /usr/local/lib/libzmq.5.dylib @rpath/libzmq.5.dylib Release/network-events.bundle/Contents/MacOS/network-events
 #    - name: test
 #      run: cd build && ctest
     - name: deploy
