@@ -167,7 +167,7 @@ private:
     
     Array<EventChannel*> ttlChannels;
 
-    void triggerTTLEvent(StringTTL TTLmsg, juce::int64 timestamp);
+    void triggerTTLEvent(StringTTL TTLmsg, juce::int64 sampleNum);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NetworkEvents);
 };

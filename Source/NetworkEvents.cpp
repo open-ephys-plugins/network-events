@@ -337,13 +337,13 @@ String NetworkEvents::handleSpecialMessages(const String& s)
     return String ("NotHandled");
 }
 
-void NetworkEvents::triggerTTLEvent(StringTTL TTLmsg, juce::int64 timestamp)
+void NetworkEvents::triggerTTLEvent(StringTTL TTLmsg, juce::int64 sampleNum)
 {
     for (auto ttlChannel : ttlChannels)
     {
         TTLEventPtr event = 
             TTLEvent::createTTLEvent(ttlChannel, 
-                                     timestamp, 
+                                     sampleNum, 
                                      TTLmsg.eventChannel, 
                                      TTLmsg.onOff);
         addEvent(event, 0);
@@ -359,7 +359,7 @@ void NetworkEvents::process (AudioBuffer<float>& buffer)
 
         if ((*stream)["enable_stream"])
         {
-            juce::int64 timestamp = getSourceTimestamp(stream->getStreamId());
+            juce::int64 sampNum = getFirstSampleNumberForBlock(stream->getStreamId());
 
             {
                 ScopedLock lock(queueLock);
@@ -376,7 +376,7 @@ void NetworkEvents::process (AudioBuffer<float>& buffer)
                 while (!TTLQueue.empty())
                 {
                     const StringTTL& TTLmsg = TTLQueue.front();
-                    triggerTTLEvent(TTLmsg, timestamp);
+                    triggerTTLEvent(TTLmsg, sampNum);
                     TTLQueue.pop();
                 }
             }
