@@ -6,11 +6,11 @@ Adds TTL events via a network connection.
 
 ## Installation
 
-(Coming soon)
+This plugin can be added via the Open Ephys GUI's built-in Plugin Installer. Press **ctrl-P** or **⌘P** to open the Plugin Installer, browse to the "Network Events" plugin, and click the "Install" button. The Network Events plugin should now be available to use.
 
 ## Usage
 
-(link to documentation)
+Documentation related to the Network Events user interface and remote commands are available [here](https://open-ephys.github.io/gui-docs/User-Manual/Plugins/Network-Events.html).
 
 
 ## Building from source
