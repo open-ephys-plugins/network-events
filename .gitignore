@@ -11,3 +11,5 @@
 !**/Build/CMakeLists.txt
 !**/Build/CMAKE_README.txt
 
+# 3. macOS files
+.DS_Store
