@@ -1,6 +1,6 @@
 # Network Events
 
-![network-events-screenshot](Resources/networkevents.png)
+![network-events-screenshot](https://open-ephys.github.io/gui-docs/_images/networkevents-01.png)
 
 Adds TTL events via a network connection.
 
