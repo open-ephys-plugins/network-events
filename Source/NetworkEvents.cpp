@@ -295,8 +295,8 @@ String NetworkEvents::handleSpecialMessages(const String& s)
     }
     else if (cmd.compareIgnoreCase ("TTL") == 0)
     {
-        // Default to channel 0 and off (if no optional info sent)
-        int channel = 0;
+        // Default to line 1 and off (if no optional info sent)
+        int line = 0;
         bool onOff = 0;
 
         for (int i = 0; i < keys.size(); ++i)
@@ -304,19 +304,19 @@ String NetworkEvents::handleSpecialMessages(const String& s)
             String key = keys[i];
             int value = dict[key].getIntValue();
 
-            if (key.compareIgnoreCase("Channel") == 0)
+            if (key.compareIgnoreCase("Line") == 0)
             {
                 // Make sure in range
                 if (value <= 256 && value >= 1)
                 {
-                    channel = value - 1;
+                    line = value - 1;
                 }
                 else
                 {
                     return "InvalidChannel";
                 }
             }
-            else if (key.compareIgnoreCase("on") == 0)
+            else if (key.compareIgnoreCase("State") == 0)
             {
                 onOff = value;
             }
@@ -325,13 +325,13 @@ String NetworkEvents::handleSpecialMessages(const String& s)
             ScopedLock TTLlock(TTLqueueLock);
             if (CoreServices::getAcquisitionStatus()) 
             {
-                TTLQueue.push({ onOff, channel });
+                TTLQueue.push({ onOff, line });
             }
         }
         
         
         
-        return "TTLHandled: Channel=" + String(channel + 1) + " on=" + String(int(onOff));
+        return "TTLHandled: Line=" + String(line + 1) + " State=" + String(int(onOff));
     }
 
     return String ("NotHandled");
@@ -344,7 +344,7 @@ void NetworkEvents::triggerTTLEvent(StringTTL TTLmsg, juce::int64 sampleNum)
         TTLEventPtr event = 
             TTLEvent::createTTLEvent(ttlChannel, 
                                      sampleNum, 
-                                     TTLmsg.eventChannel, 
+                                     TTLmsg.eventLine, 
                                      TTLmsg.onOff);
         addEvent(event, 0);
     }

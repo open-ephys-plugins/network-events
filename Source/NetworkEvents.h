@@ -84,7 +84,7 @@ private:
     struct StringTTL
     {
         bool onOff;
-        int eventChannel;
+        int eventLine;
     };
 
     class ZMQContext
