@@ -419,7 +419,6 @@ void NetworkEvents::run()
 {
     setCurrentThreadName ("NetworkEvents");
 
-#ifdef ZEROMQ
     HeapBlock<char> buffer (MAX_MESSAGE_LENGTH);
 
     // responder should always be valid (bound to a port) if it is non-null
@@ -501,8 +500,6 @@ void NetworkEvents::run()
             jassertfalse; // figure out why this is failing!
         }
     }
-
-#endif
 }
 
 StringPairArray NetworkEvents::parseNetworkMessage (StringRef msg)
@@ -533,28 +530,20 @@ String NetworkEvents::getEndpoint (uint16 port)
 /*** ZMQContext ***/
 
 NetworkEvents::ZMQContext::ZMQContext()
-#ifdef ZEROMQ
     : context (zmq_ctx_new())
-#endif
 {
 }
 
 // only happens when the last SharedResourcePointer is destroyed.
 NetworkEvents::ZMQContext::~ZMQContext()
 {
-#ifdef ZEROMQ
     zmq_ctx_destroy (context);
-#endif
 }
 
 void* NetworkEvents::ZMQContext::createSocket()
 {
-#ifdef ZEROMQ
     jassert (context != nullptr);
     return zmq_socket (context, ZMQ_REP);
-#else
-    return nullptr;
-#endif
 }
 
 /*** Responder ***/
@@ -563,7 +552,6 @@ const int NetworkEvents::Responder::RECV_TIMEOUT_MS = 100;
 
 NetworkEvents::Responder::Responder (uint16 port) : socket (nullptr), valid (false), boundPort (0), lastErrno (0)
 {
-#ifdef ZEROMQ
     socket = context->createSocket();
     if (! socket)
     {
@@ -603,12 +591,10 @@ NetworkEvents::Responder::Responder (uint16 port) : socket (nullptr), valid (fal
     jassert (port > 0);
     valid = true;
     boundPort = port;
-#endif
 }
 
 NetworkEvents::Responder::~Responder()
 {
-#ifdef ZEROMQ
     if (socket)
     {
         if (boundPort != 0)
@@ -621,7 +607,6 @@ NetworkEvents::Responder::~Responder()
         zmq_setsockopt (socket, ZMQ_LINGER, &linger, sizeof (linger));
         zmq_close (socket);
     }
-#endif
 }
 
 int NetworkEvents::Responder::getErr() const
@@ -631,11 +616,9 @@ int NetworkEvents::Responder::getErr() const
 
 void NetworkEvents::Responder::reportErr (const String& message) const
 {
-#ifdef ZEROMQ
     const String msg = "NetworkEvents: " + message + " (" + zmq_strerror (lastErrno) + ")";
     LOGE (msg)
     CoreServices::sendStatusMessage (msg);
-#endif
 };
 
 bool NetworkEvents::Responder::isValid() const
@@ -650,7 +633,6 @@ uint16 NetworkEvents::Responder::getBoundPort() const
 
 int NetworkEvents::Responder::receive (void* buf)
 {
-#ifdef ZEROMQ
     int res = zmq_recv (socket, buf, MAX_MESSAGE_LENGTH, 0);
     if (res == -1)
     {
@@ -661,21 +643,14 @@ int NetworkEvents::Responder::receive (void* buf)
         res = jmin (res, MAX_MESSAGE_LENGTH);
     }
     return res;
-#else
-    return -1;
-#endif
 }
 
 int NetworkEvents::Responder::send (StringRef response)
 {
-#ifdef ZEROMQ
     const int res = zmq_send (socket, response, response.length(), 0);
     if (res == -1)
     {
         lastErrno = zmq_errno();
     }
     return res;
-#else
-    return -1;
-#endif
 }

@@ -29,11 +29,7 @@
 #include <atomic>
 #include <list>
 #include <queue>
-
-// #define ZEROMQ
-#ifdef ZEROMQ
 #include <zmq.h>
-#endif
 
 /**
  Sends incoming TCP/IP messages from 0MQ to the events buffer
