@@ -42,7 +42,7 @@
 */
 class NetworkEvents : public GenericProcessor, public Thread, private AsyncUpdater
 {
-  public:
+public:
     /** Constructor */
     NetworkEvents();
 
@@ -55,7 +55,7 @@ class NetworkEvents : public GenericProcessor, public Thread, private AsyncUpdat
     /** Registers parameters */
     void registerParameters() override;
 
-    void parameterValueChanged(Parameter*) override;
+    void parameterValueChanged (Parameter*) override;
 
     /** Triggers TTLs on the appropriate channel */
     void process (AudioBuffer<float>& buffer) override;
@@ -70,12 +70,12 @@ class NetworkEvents : public GenericProcessor, public Thread, private AsyncUpdat
     void setNewListeningPort (uint16 port, bool synchronous = true);
 
     /** Broadcast all incoming messages **/
-    void setBroadcastAllMessages(bool);
+    void setBroadcastAllMessages (bool);
 
     /** Restarts the connection */
     void restartConnection();
 
-  private:
+private:
     struct StringTTL
     {
         bool onOff;
@@ -86,20 +86,20 @@ class NetworkEvents : public GenericProcessor, public Thread, private AsyncUpdat
     struct StringWord
     {
         uint64 word;
-        int64 tickTimestampMsgReceived;  // timestamp of received message in high-resolution ticks
+        int64 tickTimestampMsgReceived; // timestamp of received message in high-resolution ticks
     };
 
     class ZMQContext
     {
-      public:
+    public:
         ZMQContext();
         ~ZMQContext();
         void* createSocket();
 
-      private:
+    private:
         void* context;
 
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ZMQContext);
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ZMQContext);
     };
 
     /* RAII wrapper for REP socket */
@@ -107,14 +107,14 @@ class NetworkEvents : public GenericProcessor, public Thread, private AsyncUpdat
     {
     public:
         /* Creates socket from given context and tries to bind to port. If port is 0, chooses an available ephemeral port. */
-        Responder(uint16 port);
+        Responder (uint16 port);
         ~Responder();
 
         /* Returns the latest errno value */
         int getErr() const;
 
         /* Output last error on stdout and status bar, including the passed message */
-        void reportErr(const String& message) const;
+        void reportErr (const String& message) const;
 
         bool isValid() const;
 
@@ -122,12 +122,12 @@ class NetworkEvents : public GenericProcessor, public Thread, private AsyncUpdat
         uint16 getBoundPort() const;
 
         /* Receives message into buf (blocking call). Returns the number of bytes actually received, or -1 if there is an error. */
-        int receive(void* buf);
+        int receive (void* buf);
 
         /* Sends a message. returns the same as zmq_send. */
-        int send(StringRef response);
+        int send (StringRef response);
 
-      private:
+    private:
         SharedResourcePointer<ZMQContext> context;
         void* socket;
         bool valid;
@@ -136,22 +136,22 @@ class NetworkEvents : public GenericProcessor, public Thread, private AsyncUpdat
 
         static const int RECV_TIMEOUT_MS;
 
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Responder);
-};
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Responder);
+    };
 
     void handleAsyncUpdate() override; // to change port asynchronously
 
-    String handleSpecialMessages(const String& s);
+    String handleSpecialMessages (const String& s);
 
     /* Split network message into name/value pairs (name1=val1 name2=val2 etc) */
-    StringPairArray parseNetworkMessage(StringRef msg);
+    StringPairArray parseNetworkMessage (StringRef msg);
 
     /* Get an endpoint url for the given port (using 0 to represent *) */
-    static String getEndpoint(uint16 port);
+    static String getEndpoint (uint16 port);
 
-    std::atomic<bool> makeNewSocket;   // port change or restart needed (depending on requestedPort)
+    std::atomic<bool> makeNewSocket; // port change or restart needed (depending on requestedPort)
     std::atomic<uint16> requestedPort; // never set by the thread; 0 means any free port
-    std::atomic<uint16> boundPort;     // only set by the thread; 0 means no connection
+    std::atomic<uint16> boundPort; // only set by the thread; 0 means no connection
 
     std::atomic_bool broadcastAllMessages;
 
@@ -163,15 +163,14 @@ class NetworkEvents : public GenericProcessor, public Thread, private AsyncUpdat
 
     std::queue<StringWord> TTLWordQueue;
     CriticalSection TTLWordQueueLock;
-    
 
     Array<EventChannel*> ttlChannels;
 
-    void triggerTTLEvent(StringTTL TTLmsg, juce::int64 sampleNum);
-    void triggerTTLWord(StringWord WordMsg, juce::int64 sampleNum);
+    void triggerTTLEvent (StringTTL TTLmsg, juce::int64 sampleNum);
+    void triggerTTLWord (StringWord WordMsg, juce::int64 sampleNum);
     uint64 lastWord = 0;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NetworkEvents);
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NetworkEvents);
 };
 
 #endif // __NETWORKEVENT_H_91811541__

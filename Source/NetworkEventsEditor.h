@@ -36,25 +36,25 @@ class NetworkEvents;
 
 */
 
-class NetworkEventsEditor : public GenericEditor, 
+class NetworkEventsEditor : public GenericEditor,
                             public Button::Listener
 {
 public:
     /** Constructor */
-    NetworkEventsEditor(NetworkEvents* parentNode);
+    NetworkEventsEditor (NetworkEvents* parentNode);
 
     /** Destructor */
     virtual ~NetworkEventsEditor();
 
     /** Respond to button clicks */
-    void buttonClicked(Button* button) override;
+    void buttonClicked (Button* button) override;
 
 private:
     NetworkEvents* processor;
 
-	std::unique_ptr<UtilityButton> restartConnection;
+    std::unique_ptr<UtilityButton> restartConnection;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NetworkEventsEditor);
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (NetworkEventsEditor);
 };
 
-#endif  // __NETWORKEVENTSEDITOR_H_D6EC8B49__
+#endif // __NETWORKEVENTSEDITOR_H_D6EC8B49__

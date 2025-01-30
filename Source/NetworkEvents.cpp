@@ -34,38 +34,37 @@ const int MAX_MESSAGE_LENGTH = 64000;
 #endif
 
 NetworkEvents::NetworkEvents()
-    : GenericProcessor("Network Events"), Thread("NetworkThread"), makeNewSocket(false), boundPort(0)
+    : GenericProcessor ("Network Events"), Thread ("NetworkThread"), makeNewSocket (false), boundPort (0)
 {
-    setProcessorType(Plugin::Processor::FILTER);
+    setProcessorType (Plugin::Processor::FILTER);
 
     // async so that any lingering instances will be destroyed first
-    setNewListeningPort(5556, false);
+    setNewListeningPort (5556, false);
     startThread();
 
     sendSampleCount = false; // disable updating the continuous buffer sample counts,
-                             // since this processor only sends events
+        // since this processor only sends events
 }
 
 void NetworkEvents::registerParameters()
 {
-    addIntParameter(Parameter::ParameterScope::PROCESSOR_SCOPE, "port", "Port", "Port to bind", 5556, 0, 65535, true);
-    addBooleanParameter(Parameter::ParameterScope::PROCESSOR_SCOPE, "broadcast_all_messages", "Broadcast",
-                        "Broadcast all incoming messages to other nodes", false, false);
+    addIntParameter (Parameter::ParameterScope::PROCESSOR_SCOPE, "port", "Port", "Port to bind", 5556, 0, 65535, true);
+    addBooleanParameter (Parameter::ParameterScope::PROCESSOR_SCOPE, "broadcast_all_messages", "Broadcast", "Broadcast all incoming messages to other nodes", false, false);
 }
 
-void NetworkEvents::parameterValueChanged(Parameter* param)
+void NetworkEvents::parameterValueChanged (Parameter* param)
 {
     if (param->getName() == "port")
     {
-        setNewListeningPort(static_cast<juce::uint16>(static_cast<IntParameter*>(param)->getIntValue()), true);
+        setNewListeningPort (static_cast<juce::uint16> (static_cast<IntParameter*> (param)->getIntValue()), true);
     }
     if (param->getName() == "broadcast_all_messages")
     {
-        setBroadcastAllMessages(static_cast<BooleanParameter*>(param)->getBoolValue());
+        setBroadcastAllMessages (static_cast<BooleanParameter*> (param)->getBoolValue());
     }
 }
 
-void NetworkEvents::setNewListeningPort(uint16 port, bool synchronous)
+void NetworkEvents::setNewListeningPort (uint16 port, bool synchronous)
 {
     requestedPort = port;
 
@@ -79,17 +78,17 @@ void NetworkEvents::setNewListeningPort(uint16 port, bool synchronous)
     }
 }
 
-void NetworkEvents::setBroadcastAllMessages(bool broadcastAllMessages_)
+void NetworkEvents::setBroadcastAllMessages (bool broadcastAllMessages_)
 {
-    broadcastAllMessages.store(broadcastAllMessages_);
+    broadcastAllMessages.store (broadcastAllMessages_);
 }
 
 NetworkEvents::~NetworkEvents()
 {
-    if (!stopThread(1000))
+    if (! stopThread (1000))
     {
         jassertfalse; // shouldn't block for more than 100 ms, something's wrong
-        LOGE("Network thread timeout. Forcing thread termination, system could be left in an unstable state")
+        LOGE ("Network thread timeout. Forcing thread termination, system could be left in an unstable state")
     }
 }
 
@@ -97,35 +96,31 @@ void NetworkEvents::restartConnection()
 {
     requestedPort = boundPort.load();
 #ifdef DEBUG
-    LOGC("Restarting ZMQ connection on port ", requestedPort);
+    LOGC ("Restarting ZMQ connection on port ", requestedPort);
 #endif
     makeNewSocket = true;
 }
 
 void NetworkEvents::updateSettings()
 {
-
     ttlChannels.clear();
 
     for (const auto stream : getDataStreams())
     {
-
         // TTL Channel
         EventChannel* ttlChan;
-        const EventChannel::Settings ttlChannelSettings{EventChannel::Type::TTL, "Network Events output",
-                                                        "Triggers whenever \"TTL\" is received on the port.",
-                                                        "external.network.ttl", getDataStream(stream->getStreamId())};
+        const EventChannel::Settings ttlChannelSettings { EventChannel::Type::TTL, "Network Events output", "Triggers whenever \"TTL\" is received on the port.", "external.network.ttl", getDataStream (stream->getStreamId()) };
 
-        ttlChan = new EventChannel(ttlChannelSettings);
-        ttlChan->addProcessor(this);
-        eventChannels.add(ttlChan);
-        ttlChannels.add(ttlChan);
+        ttlChan = new EventChannel (ttlChannelSettings);
+        ttlChan->addProcessor (this);
+        eventChannels.add (ttlChan);
+        ttlChannels.add (ttlChan);
     }
 }
 
 AudioProcessorEditor* NetworkEvents::createEditor()
 {
-    editor = std::make_unique<NetworkEventsEditor>(this);
+    editor = std::make_unique<NetworkEventsEditor> (this);
 
     return editor.get();
 }
@@ -135,10 +130,10 @@ void NetworkEvents::handleAsyncUpdate()
     makeNewSocket = true;
 }
 
-String NetworkEvents::handleSpecialMessages(const String& s)
+String NetworkEvents::handleSpecialMessages (const String& s)
 {
     /** Command is first substring */
-    String cmd = s.initialSectionNotContaining(" ");
+    String cmd = s.initialSectionNotContaining (" ");
 
     StringPairArray dict; // paramater key,value pairs
     StringArray keys;
@@ -146,15 +141,15 @@ String NetworkEvents::handleSpecialMessages(const String& s)
     int recId = -1;
 
     // check for extra parameters
-    if (s.contains("="))
+    if (s.contains ("="))
     {
-        String params = s.substring(cmd.length()).trim();
-        dict = parseNetworkMessage(params);
-        dict.setIgnoresCase(true);
+        String params = s.substring (cmd.length()).trim();
+        dict = parseNetworkMessage (params);
+        dict.setIgnoresCase (true);
         keys = dict.getAllKeys();
 
         // check if record node ID is provided
-        if (keys.contains("RecordNode", true))
+        if (keys.contains ("RecordNode", true))
         {
             recNode = true;
             recId = dict["RecordNode"].getIntValue();
@@ -165,154 +160,152 @@ String NetworkEvents::handleSpecialMessages(const String& s)
     }
 
     const MessageManagerLock mmLock;
-    if (cmd.compareIgnoreCase("StartAcquisition") == 0)
+    if (cmd.compareIgnoreCase ("StartAcquisition") == 0)
     {
-        if (!CoreServices::getAcquisitionStatus())
+        if (! CoreServices::getAcquisitionStatus())
         {
-            CoreServices::setAcquisitionStatus(true);
+            CoreServices::setAcquisitionStatus (true);
         }
-        return String("StartedAcquisition");
+        return String ("StartedAcquisition");
     }
-    else if (cmd.compareIgnoreCase("StopAcquisition") == 0)
+    else if (cmd.compareIgnoreCase ("StopAcquisition") == 0)
     {
         if (CoreServices::getAcquisitionStatus())
         {
-            CoreServices::setAcquisitionStatus(false);
+            CoreServices::setAcquisitionStatus (false);
         }
-        return String("StoppedAcquisition");
+        return String ("StoppedAcquisition");
     }
-    else if (String("StartRecord").compareIgnoreCase(cmd) == 0)
+    else if (String ("StartRecord").compareIgnoreCase (cmd) == 0)
     {
-        if (!CoreServices::getRecordingStatus())
+        if (! CoreServices::getRecordingStatus())
         {
             /** First set optional parameters (name/value pairs)*/
-            if (s.contains("="))
+            if (s.contains ("="))
             {
                 for (int i = 0; i < keys.size(); ++i)
                 {
                     String key = keys[i];
                     String value = dict[key];
 
-                    if (key.compareIgnoreCase("CreateNewDir") == 0)
+                    if (key.compareIgnoreCase ("CreateNewDir") == 0)
                     {
-                        if (value.compareIgnoreCase("1") == 0)
+                        if (value.compareIgnoreCase ("1") == 0)
                         {
                             if (recNode)
-                                CoreServices::RecordNode::createNewRecordingDirectory(recId);
+                                CoreServices::RecordNode::createNewRecordingDirectory (recId);
                             else
                                 CoreServices::createNewRecordingDirectory();
                         }
                     }
-                    else if (key.compareIgnoreCase("RecDir") == 0)
+                    else if (key.compareIgnoreCase ("RecDir") == 0)
                     {
                         if (recNode)
-                            CoreServices::RecordNode::setRecordingDirectory(value, recId);
+                            CoreServices::RecordNode::setRecordingDirectory (value, recId);
                         else
-                            CoreServices::RecordNode::setRecordingDirectory(value, 0, true);
+                            CoreServices::RecordNode::setRecordingDirectory (value, 0, true);
                     }
-                    else if (key.compareIgnoreCase("PrependText") == 0)
+                    else if (key.compareIgnoreCase ("PrependText") == 0)
                     {
-                        CoreServices::setRecordingDirectoryPrependText(value);
+                        CoreServices::setRecordingDirectoryPrependText (value);
                     }
-                    else if (key.compareIgnoreCase("AppendText") == 0)
+                    else if (key.compareIgnoreCase ("AppendText") == 0)
                     {
-                        CoreServices::setRecordingDirectoryAppendText(value);
+                        CoreServices::setRecordingDirectoryAppendText (value);
                     }
                 }
             }
 
             /** Start recording */
-            CoreServices::setRecordingStatus(true);
-            return String("StartedRecording");
+            CoreServices::setRecordingStatus (true);
+            return String ("StartedRecording");
         }
     }
-    else if (String("StopRecord").compareIgnoreCase(cmd) == 0)
+    else if (String ("StopRecord").compareIgnoreCase (cmd) == 0)
     {
         if (CoreServices::getRecordingStatus())
         {
-            CoreServices::setRecordingStatus(false);
+            CoreServices::setRecordingStatus (false);
         }
-        return String("StoppedRecording");
+        return String ("StoppedRecording");
     }
-    else if (cmd.compareIgnoreCase("IsAcquiring") == 0)
+    else if (cmd.compareIgnoreCase ("IsAcquiring") == 0)
     {
-        String status = CoreServices::getAcquisitionStatus() ? String("1") : String("0");
+        String status = CoreServices::getAcquisitionStatus() ? String ("1") : String ("0");
         return status;
     }
-    else if (cmd.compareIgnoreCase("GetNodeID") == 0)
+    else if (cmd.compareIgnoreCase ("GetNodeID") == 0)
     {
-        String status = String(CoreServices::getAvailableRecordNodeIds().getFirst());
+        String status = String (CoreServices::getAvailableRecordNodeIds().getFirst());
         return status;
     }
-    else if (cmd.compareIgnoreCase("IsRecording") == 0)
+    else if (cmd.compareIgnoreCase ("IsRecording") == 0)
     {
-        String status = CoreServices::getRecordingStatus() ? String("1") : String("0");
+        String status = CoreServices::getRecordingStatus() ? String ("1") : String ("0");
         return status;
     }
-    else if (cmd.compareIgnoreCase("GetRecordingPath") == 0)
+    else if (cmd.compareIgnoreCase ("GetRecordingPath") == 0)
     {
         File recordDir;
 
         if (recNode)
         {
-            recordDir = CoreServices::RecordNode::getRecordingDirectory(recId);
+            recordDir = CoreServices::RecordNode::getRecordingDirectory (recId);
         }
         else
         {
             recordDir = CoreServices::getRecordingParentDirectory();
         }
 
-        String msg(recordDir.getFullPathName());
+        String msg (recordDir.getFullPathName());
         return msg;
     }
-    else if (cmd.compareIgnoreCase("GetRecordingNumber") == 0)
+    else if (cmd.compareIgnoreCase ("GetRecordingNumber") == 0)
     {
         String status;
 
         if (recNode)
         {
-            status += (CoreServices::RecordNode::getRecordingNumber(recId));
+            status += (CoreServices::RecordNode::getRecordingNumber (recId));
         }
         else
         {
             status +=
-                (CoreServices::RecordNode::getRecordingNumber(CoreServices::getAvailableRecordNodeIds().getFirst()) +
-                 1);
+                (CoreServices::RecordNode::getRecordingNumber (CoreServices::getAvailableRecordNodeIds().getFirst()) + 1);
         }
 
         return status;
     }
-    else if (cmd.compareIgnoreCase("GetExperimentNumber") == 0)
+    else if (cmd.compareIgnoreCase ("GetExperimentNumber") == 0)
     {
         String status;
 
         if (recNode)
         {
-            status += (CoreServices::RecordNode::getExperimentNumber(recId));
+            status += (CoreServices::RecordNode::getExperimentNumber (recId));
         }
         else
         {
             status +=
-                (CoreServices::RecordNode::getExperimentNumber(CoreServices::getAvailableRecordNodeIds().getFirst()) +
-                 1);
+                (CoreServices::RecordNode::getExperimentNumber (CoreServices::getAvailableRecordNodeIds().getFirst()) + 1);
         }
 
         return status;
     }
-    else if (cmd.compareIgnoreCase("TTL") == 0)
+    else if (cmd.compareIgnoreCase ("TTL") == 0)
     {
-        if (dict.containsKey("Word"))
+        if (dict.containsKey ("Word"))
         {
             uint64_t word = dict["Word"].getLargeIntValue();
             if (CoreServices::getAcquisitionStatus())
             {
-                ScopedLock TTLWordLock(TTLWordQueueLock);
-                TTLWordQueue.push({word, Time::getHighResolutionTicks()});
+                ScopedLock TTLWordLock (TTLWordQueueLock);
+                TTLWordQueue.push ({ word, Time::getHighResolutionTicks() });
             }
-            return "TTLHandled: Word=" + String(word);
+            return "TTLHandled: Word=" + String (word);
         }
 
-        if (dict.containsKey("Line"))
+        if (dict.containsKey ("Line"))
         {
             // received line is 1-based
             int line = dict["Line"].getIntValue() - 1;
@@ -323,45 +316,45 @@ String NetworkEvents::handleSpecialMessages(const String& s)
 
             // Default to line 1 and off (if no optional info sent)
             bool onOff = false;
-            if (dict.containsKey("State"))
+            if (dict.containsKey ("State"))
             {
-                onOff = static_cast<bool>(dict["State"].getIntValue());
+                onOff = static_cast<bool> (dict["State"].getIntValue());
             }
 
             if (CoreServices::getAcquisitionStatus())
             {
-                ScopedLock TTLlock(TTLqueueLock);
-                TTLQueue.push({onOff, static_cast<uint8>(line), Time::getHighResolutionTicks()});
+                ScopedLock TTLlock (TTLqueueLock);
+                TTLQueue.push ({ onOff, static_cast<uint8> (line), Time::getHighResolutionTicks() });
             }
 
-            return "TTLHandled: Line=" + String(line + 1) + " State=" + String(static_cast<int>(onOff));
+            return "TTLHandled: Line=" + String (line + 1) + " State=" + String (static_cast<int> (onOff));
         }
 
         return "TTLNotHandled";
     }
 
-    return String("NotHandled");
+    return String ("NotHandled");
 }
 
-int64 getCurrentSampleOffsetFromTickTimestamp(int64 tickTimestamp, double sampleRate)
+int64 getCurrentSampleOffsetFromTickTimestamp (int64 tickTimestamp, double sampleRate)
 {
     const double samplesPerTick = sampleRate / Time::getHighResolutionTicksPerSecond();
-    return static_cast<int64>(std::round((tickTimestamp - Time::getHighResolutionTicks()) * samplesPerTick));
+    return static_cast<int64> (std::round ((tickTimestamp - Time::getHighResolutionTicks()) * samplesPerTick));
 }
 
-void NetworkEvents::triggerTTLEvent(StringTTL TTLmsg, juce::int64 sampleNum)
+void NetworkEvents::triggerTTLEvent (StringTTL TTLmsg, juce::int64 sampleNum)
 {
     for (const auto ttlChannel : ttlChannels)
     {
         const int64 sampleOffset =
-            getCurrentSampleOffsetFromTickTimestamp(TTLmsg.tickTimestampMsgReceived, ttlChannel->getSampleRate());
+            getCurrentSampleOffsetFromTickTimestamp (TTLmsg.tickTimestampMsgReceived, ttlChannel->getSampleRate());
         TTLEventPtr event =
-            TTLEvent::createTTLEvent(ttlChannel, sampleNum + sampleOffset, TTLmsg.eventLine, TTLmsg.onOff);
-        addEvent(event, 0); // TODO: Does sampleNum have to be 0?
+            TTLEvent::createTTLEvent (ttlChannel, sampleNum + sampleOffset, TTLmsg.eventLine, TTLmsg.onOff);
+        addEvent (event, 0); // TODO: Does sampleNum have to be 0?
     }
 }
 
-void NetworkEvents::triggerTTLWord(StringWord wordMsg, juce::int64 sample)
+void NetworkEvents::triggerTTLWord (StringWord wordMsg, juce::int64 sample)
 {
     // ignore unchanged words
     if (wordMsg.word == lastWord)
@@ -370,52 +363,51 @@ void NetworkEvents::triggerTTLWord(StringWord wordMsg, juce::int64 sample)
     for (auto* ttlChannel : ttlChannels)
     {
         const int64 sampleOffset =
-            getCurrentSampleOffsetFromTickTimestamp(wordMsg.tickTimestampMsgReceived, ttlChannel->getSampleRate());
+            getCurrentSampleOffsetFromTickTimestamp (wordMsg.tickTimestampMsgReceived, ttlChannel->getSampleRate());
 
-        const auto events = TTLEvent::createTTLEvent(ttlChannel, sample + sampleOffset, wordMsg.word);
+        const auto events = TTLEvent::createTTLEvent (ttlChannel, sample + sampleOffset, wordMsg.word);
         for (const auto& event : events)
         {
-            addEvent(event, static_cast<int>(sample));
+            addEvent (event, static_cast<int> (sample));
         }
     }
 
     lastWord = wordMsg.word;
 }
 
-void NetworkEvents::process(AudioBuffer<float>& buffer)
+void NetworkEvents::process (AudioBuffer<float>& buffer)
 {
     for (const auto stream : getDataStreams())
     {
-
         if ((*stream)["enable_stream"])
         {
-            const juce::int64 sampNum = getFirstSampleNumberForBlock(stream->getStreamId());
+            const juce::int64 sampNum = getFirstSampleNumberForBlock (stream->getStreamId());
 
             {
-                ScopedLock lock(queueLock);
-                while (!networkMessagesQueue.empty())
+                ScopedLock lock (queueLock);
+                while (! networkMessagesQueue.empty())
                 {
                     const String& msg = networkMessagesQueue.front();
-                    broadcastMessage(msg);
+                    broadcastMessage (msg);
                     networkMessagesQueue.pop();
                 }
             }
 
             {
-                ScopedLock TTLlock(TTLqueueLock);
-                while (!TTLQueue.empty())
+                ScopedLock TTLlock (TTLqueueLock);
+                while (! TTLQueue.empty())
                 {
                     const StringTTL& TTLmsg = TTLQueue.front();
-                    triggerTTLEvent(TTLmsg, sampNum);
+                    triggerTTLEvent (TTLmsg, sampNum);
                     TTLQueue.pop();
                 }
             }
 
             {
-                ScopedLock TTLWordLock(TTLWordQueueLock);
-                while (!TTLWordQueue.empty())
+                ScopedLock TTLWordLock (TTLWordQueueLock);
+                while (! TTLWordQueue.empty())
                 {
-                    triggerTTLWord(TTLWordQueue.front(), sampNum);
+                    triggerTTLWord (TTLWordQueue.front(), sampNum);
                     TTLWordQueue.pop();
                 }
             }
@@ -425,21 +417,20 @@ void NetworkEvents::process(AudioBuffer<float>& buffer)
 
 void NetworkEvents::run()
 {
-
-    setCurrentThreadName("NetworkEvents");
+    setCurrentThreadName ("NetworkEvents");
 
 #ifdef ZEROMQ
-    HeapBlock<char> buffer(MAX_MESSAGE_LENGTH);
+    HeapBlock<char> buffer (MAX_MESSAGE_LENGTH);
 
     // responder should always be valid (bound to a port) if it is non-null
-    ScopedPointer<Responder> responder(new Responder(0)); // use any available port as default
+    ScopedPointer<Responder> responder (new Responder (0)); // use any available port as default
     if (responder->isValid())
     {
         boundPort = responder->getBoundPort();
     }
     else
     {
-        LOGE("Failed to bind to port");
+        LOGE ("Failed to bind to port");
         responder = nullptr;
         boundPort = 0;
     }
@@ -447,12 +438,12 @@ void NetworkEvents::run()
     // purposely don't call updatePortString - makeNewSocket will be true on startup,
     // so wait to try the requested port (5556) before updating the editor.
 
-    while (!threadShouldExit())
+    while (! threadShouldExit())
     {
         // change socket if necessary
-        while (makeNewSocket.exchange(false))
+        while (makeNewSocket.exchange (false))
         {
-            const uint16 nextPort = requestedPort;     // (maybe the newly entered port on the editor text box)
+            const uint16 nextPort = requestedPort; // (maybe the newly entered port on the editor text box)
             if (nextPort > 0 && nextPort == boundPort) // i.e. this is a restart
             {
                 responder = nullptr; // destroy old one, which frees the port
@@ -461,10 +452,10 @@ void NetworkEvents::run()
 
             if (nextPort == 0)
             {
-                CoreServices::sendStatusMessage("NetworkEvents: Selecting port automatically");
+                CoreServices::sendStatusMessage ("NetworkEvents: Selecting port automatically");
             }
 
-            ScopedPointer<Responder> newResponder(new Responder(nextPort));
+            ScopedPointer<Responder> newResponder (new Responder (nextPort));
             if (newResponder->isValid())
             {
                 // replace the current socket with the newly created socket
@@ -473,39 +464,39 @@ void NetworkEvents::run()
             }
             else
             {
-                newResponder->reportErr("Failed to connect to port " + String(nextPort));
+                newResponder->reportErr ("Failed to connect to port " + String (nextPort));
             }
         }
 
         // if we don't have a vaild (connected) socket, keep looping until we do
         if (responder == nullptr)
         {
-            wait(100);
+            wait (100);
             continue;
         }
 
-        const int result = responder->receive(buffer); // times out after RECV_TIMEOUT_MS ms
+        const int result = responder->receive (buffer); // times out after RECV_TIMEOUT_MS ms
         if (result == -1)
         {
-            jassert(responder->getErr() == EAGAIN); // no data is fine, try again later
+            jassert (responder->getErr() == EAGAIN); // no data is fine, try again later
             if (responder->getErr() != EAGAIN)
-                LOGE("Error while waiting for receiving data: ", responder->getErr())
+                LOGE ("Error while waiting for receiving data: ", responder->getErr())
             continue;
         }
 
         // received message. read string from the buffer.
-        String msg = String::fromUTF8(buffer, result);
+        String msg = String::fromUTF8 (buffer, result);
 
         if (broadcastAllMessages)
         {
-            CoreServices::sendStatusMessage("Network event received: " + msg);
-            ScopedLock lock(queueLock);
-            networkMessagesQueue.push({msg});
+            CoreServices::sendStatusMessage ("Network event received: " + msg);
+            ScopedLock lock (queueLock);
+            networkMessagesQueue.push ({ msg });
         }
 
-        String response = handleSpecialMessages(msg);
+        String response = handleSpecialMessages (msg);
 
-        if (responder->send(response) == -1)
+        if (responder->send (response) == -1)
         {
             jassertfalse; // figure out why this is failing!
         }
@@ -514,36 +505,36 @@ void NetworkEvents::run()
 #endif
 }
 
-StringPairArray NetworkEvents::parseNetworkMessage(StringRef msg)
+StringPairArray NetworkEvents::parseNetworkMessage (StringRef msg)
 {
-    StringArray args = StringArray::fromTokens(msg, " ", "'\"");
+    StringArray args = StringArray::fromTokens (msg, " ", "'\"");
     args.removeEmptyStrings();
 
     StringPairArray dict;
     for (const String& arg : args)
     {
-        const int iEq = arg.indexOfChar('=');
+        const int iEq = arg.indexOfChar ('=');
         if (iEq >= 0)
         {
-            String key = arg.substring(0, iEq);
-            String val = arg.substring(iEq + 1).unquoted();
-            dict.set(key, val);
+            String key = arg.substring (0, iEq);
+            String val = arg.substring (iEq + 1).unquoted();
+            dict.set (key, val);
         }
     }
 
     return dict;
 }
 
-String NetworkEvents::getEndpoint(uint16 port)
+String NetworkEvents::getEndpoint (uint16 port)
 {
-    return "tcp://*:" + (port == 0 ? "*" : String(port));
+    return "tcp://*:" + (port == 0 ? "*" : String (port));
 }
 
 /*** ZMQContext ***/
 
 NetworkEvents::ZMQContext::ZMQContext()
 #ifdef ZEROMQ
-    : context(zmq_ctx_new())
+    : context (zmq_ctx_new())
 #endif
 {
 }
@@ -552,15 +543,15 @@ NetworkEvents::ZMQContext::ZMQContext()
 NetworkEvents::ZMQContext::~ZMQContext()
 {
 #ifdef ZEROMQ
-    zmq_ctx_destroy(context);
+    zmq_ctx_destroy (context);
 #endif
 }
 
 void* NetworkEvents::ZMQContext::createSocket()
 {
 #ifdef ZEROMQ
-    jassert(context != nullptr);
-    return zmq_socket(context, ZMQ_REP);
+    jassert (context != nullptr);
+    return zmq_socket (context, ZMQ_REP);
 #else
     return nullptr;
 #endif
@@ -570,25 +561,25 @@ void* NetworkEvents::ZMQContext::createSocket()
 
 const int NetworkEvents::Responder::RECV_TIMEOUT_MS = 100;
 
-NetworkEvents::Responder::Responder(uint16 port) : socket(nullptr), valid(false), boundPort(0), lastErrno(0)
+NetworkEvents::Responder::Responder (uint16 port) : socket (nullptr), valid (false), boundPort (0), lastErrno (0)
 {
 #ifdef ZEROMQ
     socket = context->createSocket();
-    if (!socket)
+    if (! socket)
     {
         lastErrno = zmq_errno();
         return;
     }
 
     // set socket to timeout when receiving rather than blocking forever
-    if (zmq_setsockopt(socket, ZMQ_RCVTIMEO, &RECV_TIMEOUT_MS, sizeof(RECV_TIMEOUT_MS)) == -1)
+    if (zmq_setsockopt (socket, ZMQ_RCVTIMEO, &RECV_TIMEOUT_MS, sizeof (RECV_TIMEOUT_MS)) == -1)
     {
         lastErrno = zmq_errno();
         return;
     }
 
     // bind to endpoint
-    if (zmq_bind(socket, getEndpoint(port).toRawUTF8()) == -1)
+    if (zmq_bind (socket, getEndpoint (port).toRawUTF8()) == -1)
     {
         lastErrno = zmq_errno();
         return;
@@ -600,16 +591,16 @@ NetworkEvents::Responder::Responder(uint16 port) : socket(nullptr), valid(false)
         const size_t BUF_LEN = 32;
         size_t len = BUF_LEN;
         char endpoint[BUF_LEN];
-        if (zmq_getsockopt(socket, ZMQ_LAST_ENDPOINT, endpoint, &len) == -1)
+        if (zmq_getsockopt (socket, ZMQ_LAST_ENDPOINT, endpoint, &len) == -1)
         {
             lastErrno = zmq_errno();
             return;
         }
 
-        port = static_cast<uint16>(String(endpoint).getTrailingIntValue());
+        port = static_cast<uint16> (String (endpoint).getTrailingIntValue());
     }
 
-    jassert(port > 0);
+    jassert (port > 0);
     valid = true;
     boundPort = port;
 #endif
@@ -623,12 +614,12 @@ NetworkEvents::Responder::~Responder()
         if (boundPort != 0)
         {
             // unbind/disconnect to free the port (critical for restarts)
-            zmq_unbind(socket, getEndpoint(boundPort).toRawUTF8());
+            zmq_unbind (socket, getEndpoint (boundPort).toRawUTF8());
         }
 
         const int linger = 0;
-        zmq_setsockopt(socket, ZMQ_LINGER, &linger, sizeof(linger));
-        zmq_close(socket);
+        zmq_setsockopt (socket, ZMQ_LINGER, &linger, sizeof (linger));
+        zmq_close (socket);
     }
 #endif
 }
@@ -638,12 +629,12 @@ int NetworkEvents::Responder::getErr() const
     return lastErrno;
 }
 
-void NetworkEvents::Responder::reportErr(const String& message) const
+void NetworkEvents::Responder::reportErr (const String& message) const
 {
 #ifdef ZEROMQ
-    const String msg = "NetworkEvents: " + message + " (" + zmq_strerror(lastErrno) + ")";
-    LOGE(msg)
-    CoreServices::sendStatusMessage(msg);
+    const String msg = "NetworkEvents: " + message + " (" + zmq_strerror (lastErrno) + ")";
+    LOGE (msg)
+    CoreServices::sendStatusMessage (msg);
 #endif
 };
 
@@ -657,17 +648,17 @@ uint16 NetworkEvents::Responder::getBoundPort() const
     return boundPort;
 }
 
-int NetworkEvents::Responder::receive(void* buf)
+int NetworkEvents::Responder::receive (void* buf)
 {
 #ifdef ZEROMQ
-    int res = zmq_recv(socket, buf, MAX_MESSAGE_LENGTH, 0);
+    int res = zmq_recv (socket, buf, MAX_MESSAGE_LENGTH, 0);
     if (res == -1)
     {
         lastErrno = zmq_errno();
     }
     else
     {
-        res = jmin(res, MAX_MESSAGE_LENGTH);
+        res = jmin (res, MAX_MESSAGE_LENGTH);
     }
     return res;
 #else
@@ -675,10 +666,10 @@ int NetworkEvents::Responder::receive(void* buf)
 #endif
 }
 
-int NetworkEvents::Responder::send(StringRef response)
+int NetworkEvents::Responder::send (StringRef response)
 {
 #ifdef ZEROMQ
-    const int res = zmq_send(socket, response, response.length(), 0);
+    const int res = zmq_send (socket, response, response.length(), 0);
     if (res == -1)
     {
         lastErrno = zmq_errno();
