@@ -36,8 +36,6 @@ const int MAX_MESSAGE_LENGTH = 64000;
 NetworkEvents::NetworkEvents()
     : GenericProcessor ("Network Events"), Thread ("NetworkThread"), makeNewSocket (false), boundPort (0)
 {
-    setProcessorType (Plugin::Processor::FILTER);
-
     // async so that any lingering instances will be destroyed first
     setNewListeningPort (5556, false);
     startThread();
